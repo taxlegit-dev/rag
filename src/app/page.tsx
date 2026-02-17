@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
 
       if (result?.ok) {
         setMessage("Admin login successful!");
-        router.push("/admin/dashboard/rag");
+        router.push("/rag");
       } else {
         setMessage(result?.error || "Invalid credentials");
       }
@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className=" text-black min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4">
+    <div className="text-black min-h-screen bg-zinc-50 dark:bg-black flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-xl p-8">
           <h2 className="text-4xl font-bold mb-2 text-center text-gray-800">

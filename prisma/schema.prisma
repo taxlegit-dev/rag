@@ -12,26 +12,19 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
+  email        String        @id
   password     String
-  createdAt    DateTime      @default(now())
-  firstName    String?
-  lastName     String?
-  role         Role          @default(ADMIN)
-  image        String?
-  phone        String?
   ragDocuments RagDocument[]
 }
 
 model RagDocument {
   id             String     @id @default(uuid())
   sourceFileName String?
-  uploadedById   String
+  uploadedByEmail String
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   chunks         RagChunk[]
-  uploadedBy     User       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedBy     User       @relation(fields: [uploadedByEmail], references: [email], onDelete: Cascade)
 }
 
 model RagChunk {
@@ -44,8 +37,4 @@ model RagChunk {
   document   RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
-}
-
-enum Role {
-  ADMIN
 }

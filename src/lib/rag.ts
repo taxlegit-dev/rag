@@ -17,9 +17,6 @@ const DEFAULT_CHUNK_SIZE = Number(process.env.RAG_CHUNK_SIZE || 1200);
 const DEFAULT_CHUNK_OVERLAP = Number(process.env.RAG_CHUNK_OVERLAP || 200);
 const DEFAULT_TOP_K = Number(process.env.RAG_TOP_K || 8);
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export function cleanText(input: string): string {
   return (
@@ -73,6 +70,9 @@ export async function createEmbeddings(texts: string[]): Promise<number[][]> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY_NOT_CONFIGURED");
   }
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 
   const embeddings: number[][] = []; // 2d array defined.
   const batchSize = 96;
@@ -131,10 +131,10 @@ export async function getRagContext(
         rc."content",
         rd."sourceFileName",
         rc."documentId",
-        rc."embedding" <=> ${vector}::vector AS "distance"
+        rc."embedding" <=> ${vector}::extensions.vector AS "distance"
       FROM "RagChunk" rc
       JOIN "RagDocument" rd ON rd."id" = rc."documentId"
-      ORDER BY rc."embedding" <=> ${vector}::vector
+      ORDER BY rc."embedding" <=> ${vector}::extensions.vector
       LIMIT ${topK};
     `,
   );

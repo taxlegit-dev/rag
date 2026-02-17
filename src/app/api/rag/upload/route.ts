@@ -25,9 +25,9 @@ const SUPPORTED_EXTENSIONS = new Set([
 ]);
 
 function getFileExtension(fileName: string) {
-  const lower = fileName.toLowerCase(); // "Report.PDF" → "report.pdf"
-  const dot = lower.lastIndexOf("."); // finds position of the LAST dot (last dot hi extension hota hai)
-  return dot >= 0 ? lower.slice(dot) : ""; // dot found → return ".pdf", no dot → return ""
+  const lower = fileName.toLowerCase();
+  const dot = lower.lastIndexOf(".");
+  return dot >= 0 ? lower.slice(dot) : "";
 }
 
 async function extractTextFromFile(file: File): Promise<string> {
@@ -38,7 +38,6 @@ async function extractTextFromFile(file: File): Promise<string> {
 
   const arrayBuffer = await file.arrayBuffer();
 
-  // mammoth returns object with .value
   if (ext === ".doc" || ext === ".docx") {
     const result = await mammoth.extractRawText({
       buffer: Buffer.from(arrayBuffer),
@@ -61,7 +60,7 @@ async function extractTextFromFile(file: File): Promise<string> {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== "ADMIN") {
+    if (!session || session.user.email !== "admin@taxlegit.com") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -70,8 +69,6 @@ export async function POST(request: NextRequest) {
     const text = formData.get("text");
 
     const manualText = typeof text === "string" ? text.trim() : "";
-    // Agar text string hai → trim karke rakh lo
-    // Agar null/undefined hai → empty string rakh lo
 
     let fileText = "";
     let sourceFileName: string | null = null;
@@ -97,17 +94,16 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    //Yeh database mein ek naya document record bana raha hai — basically ek parent entry jo baad mein saare chunks ko track karne ke liye use hogi.
+
     const document = await prisma.ragDocument.create({
       data: {
         sourceFileName: sourceFileName || "Manual text",
-        uploadedById: session.user.id,
+        uploadedByEmail: session.user.email!,
       },
     });
 
     const embeddings = await createEmbeddings(chunks);
 
-    // This is preparing multiple rows for bulk insert into RagChunk table.
     const values = embeddings.map((embedding, index) => {
       const vector = vectorToSql(embedding);
       const chunkId = randomUUID();
@@ -116,17 +112,9 @@ export async function POST(request: NextRequest) {
         ${document.id},
         ${index},
         ${chunks[index]},
-        ${vector}::vector
+        ${vector}::extensions.vector
       )`;
     });
-
-    // For ex: Tumne ek 10 page PDF upload ki
-    //         ↓
-    // 1 RagDocument record bana  → "report.pdf" ka parent folder
-    //         ↓
-    // PDF ke 50 chunks bane      → 50 RagChunk records
-    //         ↓
-    // Har chunk mein documentId = "uuid-123"  → sabko pata hai wo "report.pdf" ke hain
 
     if (values.length > 0) {
       await prisma.$executeRaw(

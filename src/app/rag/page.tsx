@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-export default function RagAdminPage() {
+export default function RagPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -15,8 +15,11 @@ export default function RagAdminPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status !== "loading" && (!session || session.user.role !== "ADMIN")) {
-      router.push("/admin/login");
+    if (
+      status !== "loading" &&
+      (!session || session.user.email !== "admin@taxlegit.com")
+    ) {
+      router.push("/");
     }
   }, [session, status, router]);
 
@@ -39,7 +42,7 @@ export default function RagAdminPage() {
       }
       formData.append("text", text);
 
-      const response = await fetch("/api/admin/rag/upload", {
+      const response = await fetch("/api/rag/upload", {
         method: "POST",
         body: formData,
       });
@@ -66,7 +69,7 @@ export default function RagAdminPage() {
   };
 
   if (status === "loading") return null;
-  if (!session || session.user.role !== "ADMIN") return null;
+  if (!session || session.user.email !== "admin@taxlegit.com") return null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10">
@@ -129,7 +132,6 @@ export default function RagAdminPage() {
           </p>
         )}
         {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-
       </div>
     </div>
   );
