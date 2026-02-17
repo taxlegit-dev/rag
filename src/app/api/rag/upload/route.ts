@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { getServerSession } from "next-auth";
-import { Prisma } from "@prisma/client";
+import { Domain, Prisma } from "@prisma/client";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -23,6 +23,15 @@ const SUPPORTED_EXTENSIONS = new Set([
   ".xlsx",
   ".txt",
 ]);
+
+const DOMAIN_VALUES = [
+  "ICFR",
+  "AARAMBH",
+  "NGO",
+  "TAXLEGIT",
+  "CSR",
+  "DASHBOARD",
+] as const;
 
 function getFileExtension(fileName: string) {
   const lower = fileName.toLowerCase();
@@ -67,8 +76,31 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get("file");
     const text = formData.get("text");
+    const domains = formData.getAll("domains");
 
     const manualText = typeof text === "string" ? text.trim() : "";
+
+    const normalizedDomains = domains
+      .map((value) => (typeof value === "string" ? value.trim() : ""))
+      .filter((value) => value.length > 0);
+
+    const invalidDomains = normalizedDomains.filter(
+      (value) => !DOMAIN_VALUES.includes(value as (typeof DOMAIN_VALUES)[number]),
+    );
+
+    if (invalidDomains.length > 0) {
+      return NextResponse.json(
+        { error: "Invalid domain selection" },
+        { status: 400 },
+      );
+    }
+
+    if (normalizedDomains.length === 0) {
+      return NextResponse.json(
+        { error: "At least one domain is required" },
+        { status: 400 },
+      );
+    }
 
     let fileText = "";
     let sourceFileName: string | null = null;
@@ -99,6 +131,7 @@ export async function POST(request: NextRequest) {
       data: {
         sourceFileName: sourceFileName || "Manual text",
         uploadedByEmail: session.user.email!,
+        domains: normalizedDomains as Domain[],
       },
     });
 

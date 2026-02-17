@@ -13,6 +13,17 @@ export default function RagPage() {
   const [processing, setProcessing] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
+  const [domainsOpen, setDomainsOpen] = useState(false);
+
+  const domainOptions = [
+    "ICFR",
+    "AARAMBH",
+    "NGO",
+    "TAXLEGIT",
+    "CSR",
+    "DASHBOARD",
+  ];
 
   useEffect(() => {
     if (
@@ -24,8 +35,18 @@ export default function RagPage() {
   }, [session, status, router]);
 
   const canSubmit = useMemo(() => {
-    return selectedFile || text.trim().length > 0;
-  }, [selectedFile, text]);
+    return (
+      (selectedFile || text.trim().length > 0) && selectedDomains.length > 0
+    );
+  }, [selectedFile, text, selectedDomains]);
+
+  const toggleDomain = (domain: string) => {
+    setSelectedDomains((prev) =>
+      prev.includes(domain)
+        ? prev.filter((value) => value !== domain)
+        : [...prev, domain],
+    );
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -41,6 +62,7 @@ export default function RagPage() {
         formData.append("file", selectedFile);
       }
       formData.append("text", text);
+      selectedDomains.forEach((domain) => formData.append("domains", domain));
 
       const response = await fetch("/api/rag/upload", {
         method: "POST",
@@ -77,6 +99,52 @@ export default function RagPage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-6">RAG</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Domains
+            </label>
+            <button
+              type="button"
+              onClick={() => setDomainsOpen((open) => !open)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-left text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {selectedDomains.length > 0
+                ? `${selectedDomains.length} selected`
+                : "Choose domains"}
+            </button>
+
+            {domainsOpen && (
+              <div className="absolute z-10 mt-2 w-full rounded-lg border border-gray-200 bg-white shadow-lg p-3 space-y-2">
+                {domainOptions.map((domain) => (
+                  <label
+                    key={domain}
+                    className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedDomains.includes(domain)}
+                      onChange={() => toggleDomain(domain)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    {domain}
+                  </label>
+                ))}
+              </div>
+            )}
+            {selectedDomains.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {selectedDomains.map((domain) => (
+                  <span
+                    key={domain}
+                    className="rounded-full bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1"
+                  >
+                    {domain}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Upload File

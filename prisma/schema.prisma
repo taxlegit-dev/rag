@@ -21,6 +21,7 @@ model RagDocument {
   id             String     @id @default(uuid())
   sourceFileName String?
   uploadedByEmail String
+  domains        Domain[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
   chunks         RagChunk[]
@@ -37,4 +38,13 @@ model RagChunk {
   document   RagDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
   @@index([documentId])
+}
+
+enum Domain {
+  ICFR
+  AARAMBH
+  NGO
+  TAXLEGIT
+  CSR
+  DASHBOARD
 }
