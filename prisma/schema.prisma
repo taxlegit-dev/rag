@@ -1,0 +1,250 @@
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "binary"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                    String           @id @default(uuid())
+  email                 String?          @unique
+  password              String?
+  createdAt             DateTime         @default(now())
+  firstName             String
+  lastName              String
+  role                  Role             @default(USER)
+  creditsLeft           Int              @default(0)
+  emailVerified         DateTime?
+  expiresAt             DateTime?
+  image                 String?
+  phone                 String?
+  planId                String?
+  remainingProcesses    Int              @default(0)
+  remainingSubprocesses Int              @default(0)
+  accounts              Account[]
+  departments           Department[]
+  projectSessions       ProjectSession[]
+  ragDocuments          RagDocument[]
+  sessions              Session[]
+  subUsers              SubUser[]
+  subscriptions         Subscription[]
+  plan                  Plan?            @relation(fields: [planId], references: [id])
+}
+
+model OTP {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Question {
+  id           String   @id @default(cuid())
+  questionText String
+  inputType    String
+  options      Json?
+  isRequired   Boolean  @default(false)
+  sortOrder    Int?
+  createdAt    DateTime @default(now())
+  answers      Answer[]
+}
+
+model Department {
+  id        String    @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subUsers  SubUser[]
+
+  @@unique([name, userId])
+}
+
+model SubUser {
+  id                    String                 @id @default(uuid())
+  name                  String
+  contactNumber         String                 @unique
+  departmentId          String
+  userId                String
+  createdAt             DateTime               @default(now())
+  department            Department             @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subUserSOPAssignments SubUserSOPAssignment[]
+}
+
+model Answer {
+  id               String         @id @default(uuid())
+  projectSessionId String
+  questionId       String
+  answer           Json
+  createdAt        DateTime       @default(now())
+  projectSession   ProjectSession @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
+  question         Question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([projectSessionId, questionId])
+}
+
+model ProjectSession {
+  id           String        @id @default(uuid())
+  userId       String
+  name         String
+  createdAt    DateTime      @default(now())
+  answers      Answer[]
+  chatMessages ChatMessage[]
+  processes    Process[]
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Process {
+  id               String         @id @default(uuid())
+  projectSessionId String
+  name             String
+  createdAt        DateTime       @default(now())
+  projectSession   ProjectSession @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
+  subprocesses     Subprocess[]
+
+  @@unique([projectSessionId, name])
+}
+
+model Subprocess {
+  id                 String                 @id @default(uuid())
+  processId          String
+  name               String
+  tasks              Json
+  createdAt          DateTime               @default(now())
+  subUserAssignments SubUserSOPAssignment[]
+  process            Process                @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, name])
+}
+
+model SubUserSOPAssignment {
+  id           String     @id @default(uuid())
+  subUserId    String
+  subprocessId String
+  createdAt    DateTime   @default(now())
+  subUser      SubUser    @relation(fields: [subUserId], references: [id], onDelete: Cascade)
+  subprocess   Subprocess @relation(fields: [subprocessId], references: [id], onDelete: Cascade)
+
+  @@unique([subUserId, subprocessId])
+}
+
+model ChatMessage {
+  id               String         @id @default(uuid())
+  projectSessionId String
+  role             ChatRole
+  content          String
+  createdAt        DateTime       @default(now())
+  projectSession   ProjectSession @relation(fields: [projectSessionId], references: [id], onDelete: Cascade)
+
+  @@index([projectSessionId, createdAt])
+}
+
+model Plan {
+  id                 String         @id @default(uuid())
+  name               String         @unique
+  price              Int
+  processLimit       Int
+  subprocessLimit    Int
+  description        String?
+  ctaText            String?
+  features           String[]
+  popular            Boolean        @default(false)
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  isDefault          Boolean        @default(false)
+  canDownloadProcess Boolean        @default(false)
+  canDownloadRCM     Boolean        @default(false)
+  canDownloadPDF     Boolean        @default(false)
+  subscriptions      Subscription[]
+  users              User[]
+}
+
+model Subscription {
+  id             String        @id @default(uuid())
+  userId         String
+  planId         String
+  paymentStatus  PaymentStatus @default(PENDING)
+  transactionId  String?
+  paymentGateway String?
+  amountPaid     Int?
+  startDate      DateTime      @default(now())
+  endDate        DateTime?
+  createdAt      DateTime      @default(now())
+  plan           Plan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RagDocument {
+  id             String     @id @default(uuid())
+  sourceFileName String?
+  uploadedById   String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  chunks         RagChunk[]
+  uploadedBy     User       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+}
+
+model RagChunk {
+  id         String                @id @default(uuid())
+  documentId String
+  chunkIndex Int
+  content    String
+  embedding  Unsupported("vector")
+  createdAt  DateTime              @default(now())
+  document   RagDocument           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
