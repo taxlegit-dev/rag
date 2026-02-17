@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SessionProvider from "@/components/SessionProvider";
-import { ToastProvider } from "@/components/ui/ToastProvider";
 
 export const metadata: Metadata = {
   title: "TaxLegit SOP",
@@ -17,7 +16,7 @@ export default function RootLayout({
     <html lang="en">
       <body className="antialiased text-black">
         <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          {children}
         </SessionProvider>
       </body>
     </html>

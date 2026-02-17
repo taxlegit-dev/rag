@@ -37,7 +37,7 @@ export default function AdminLoginPage() {
 
       if (result?.ok) {
         setMessage("Admin login successful!");
-        router.push("/admin/dashboard");
+        router.push("/admin/dashboard/rag");
       } else {
         setMessage(result?.error || "Invalid credentials");
       }
