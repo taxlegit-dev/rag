@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -15,6 +15,7 @@ export default function RagPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedDomains, setSelectedDomains] = useState<string[]>([]);
   const [domainsOpen, setDomainsOpen] = useState(false);
+  const domainsRef = useRef<HTMLDivElement | null>(null);
 
   const domainOptions = [
     "ICFR",
@@ -46,7 +47,23 @@ export default function RagPage() {
         ? prev.filter((value) => value !== domain)
         : [...prev, domain],
     );
+    setDomainsOpen(false);
   };
+
+  useEffect(() => {
+    if (!domainsOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        domainsRef.current &&
+        !domainsRef.current.contains(event.target as Node)
+      ) {
+        setDomainsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [domainsOpen]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -99,7 +116,7 @@ export default function RagPage() {
         <h1 className="text-2xl font-semibold text-gray-900 mb-6">RAG</h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="relative">
+          <div className="relative" ref={domainsRef}>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Select Domains
             </label>
