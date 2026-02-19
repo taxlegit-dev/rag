@@ -140,11 +140,11 @@ export async function getRagContext(
         rc."content",
         rd."sourceFileName",
         rc."documentId",
-        rc."embedding" <=> ${vector}::extensions.vector AS "distance"
+        rc."embedding" OPERATOR(extensions.<=>) ${vector}::extensions.vector AS "distance"
       FROM "RagChunk" rc
       JOIN "RagDocument" rd ON rd."id" = rc."documentId"
       ${domainClause}
-      ORDER BY rc."embedding" <=> ${vector}::extensions.vector
+      ORDER BY rc."embedding" OPERATOR(extensions.<=>) ${vector}::extensions.vector
       LIMIT ${topK};
     `,
   );
