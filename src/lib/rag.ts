@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { Prisma } from "@prisma/client";
+import { Domain, Prisma } from "@prisma/client";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { prisma } from "@/lib/prisma";
 
@@ -116,15 +116,24 @@ export function vectorToSql(vector: number[]): string {
 
 export async function getRagContext(
   query: string,
-  topK = DEFAULT_TOP_K,
+  options?: { topK?: number; domains?: Domain[] },
 ): Promise<RagContextChunk[]> {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return [];
+
+  const topK = options?.topK ?? DEFAULT_TOP_K;
+  const domains = options?.domains ?? [];
 
   const [embedding] = await createEmbeddings([trimmedQuery]);
   if (!embedding) return [];
 
   const vector = vectorToSql(embedding);
+  const domainClause =
+    domains.length > 0
+      ? Prisma.sql`WHERE rd."domains" && ARRAY[${Prisma.join(
+          domains,
+        )}]::"Domain"[]`
+      : Prisma.empty;
   const rows = await prisma.$queryRaw<RagContextChunk[]>(
     Prisma.sql`
       SELECT
@@ -134,6 +143,7 @@ export async function getRagContext(
         rc."embedding" <=> ${vector}::extensions.vector AS "distance"
       FROM "RagChunk" rc
       JOIN "RagDocument" rd ON rd."id" = rc."documentId"
+      ${domainClause}
       ORDER BY rc."embedding" <=> ${vector}::extensions.vector
       LIMIT ${topK};
     `,

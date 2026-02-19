@@ -11,7 +11,7 @@
     "studio": "cross-env MODE=development prisma studio",
     "prisma:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "chat:console": "tsx scripts/chat-console.ts"
+    "chat:console": "echo \"chat-console removed\""
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
